@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OvaUI - Custom Android Launcher</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        ova: {
+                            accent: '#6366f1',
+                            dark: '#0f172a',
+                            glass: 'rgba(15, 23, 42, 0.75)',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styling for Launcher Physics and Shapes */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Phone Screen Shell Frame */
+        .phone-frame {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Wallpaper Background Filter */
+        .wallpaper-bg {
+            background-size: cover;
+            background-position: center;
+            transition: filter 0.3s ease, transform 0.5s ease;
+        }
+
+        /* App Icon Shape Variants */
+        .icon-shape-circle { border-radius: 50%; }
+        .icon-shape-squircle { border-radius: 28%; }
+        .icon-shape-rounded { border-radius: 18px; }
+        .icon-shape-teardrop { border-radius: 50% 50% 50% 4px; }
+        .icon-shape-square { border-radius: 6px; }
+
+        /* Custom Scrollbar for Drawer & Settings */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        /* Glassmorphism Effects */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-search {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Drawer Animation Slide Up */
+        .drawer-slide {
+            transition: transform 0.35s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.3s ease;
+        }
+
+        /* Page Transition Animations */
+        .page-fade { transition: opacity 0.3s ease-in-out; }
+        .page-zoom { transition: transform 0.3s ease-in-out, opacity 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-0 md:p-4 select-none">
+
+    <!-- Phone Simulator Container -->
+    <div id="phone-container" class="phone-frame w-full h-screen md:h-[860px] md:max-w-[420px] md:rounded-[48px] md:border-[10px] md:border-slate-800 relative overflow-hidden shadow-2xl flex flex-col justify-between bg-black">
+        
+        <!-- Wallpaper Background Layer -->
+        <div id="wallpaper" class="wallpaper-bg absolute inset-0 z-0 scale-105" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop');"></div>
+
+        <!-- Dynamic Notch / Status Bar -->
+        <div class="relative z-20 pt-2 px-6 flex justify-between items-center text-xs font-medium text-white/90 drop-shadow-md">
+            <span id="status-clock">12:00</span>
+            <!-- Camera Punchhole Simulation (Mobile Frame Only) -->
+            <div class="hidden md:block w-3 h-3 bg-black rounded-full border border-slate-700/50"></div>
+            <div class="flex items-center space-x-2 text-[10px]">
+                <i class="fa-solid fa-wifi"></i>
+                <i class="fa-solid fa-signal"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+
+        <!-- HOME SCREEN MAIN AREA -->
+        <main id="homescreen-pages" class="relative z-10 flex-1 flex flex-col justify-between p-4 overflow-hidden">
+            
+            <!-- Top Widget: Clock & Search -->
+            <div id="widget-area" class="w-full flex flex-col items-center mt-4 space-y-4 cursor-pointer">
+                <!-- Clock Widget -->
+                <div onclick="openApp('Clock')" class="text-center group transition transform active:scale-95">
+                    <h1 id="widget-time" class="text-6xl font-light tracking-tight drop-shadow-lg">12:00</h1>
+                    <p id="widget-date" class="text-xs uppercase tracking-widest text-slate-200/80 font-semibold mt-1 drop-shadow">Sabtu, 7 November</p>
+                </div>
+
+                <!-- Google / OvaUI Search Bar Widget -->
+                <div onclick="openApp('Browser')" class="w-full glass-search rounded-full py-2.5 px-4 flex items-center justify-between shadow-lg text-white/90 hover:bg-white/25 transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-brands fa-google text-lg text-white"></i>
+                        <span class="text-xs text-white/70 font-light">Cari atau ketik URL...</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-microphone text-xs opacity-80"></i>
+                        <i class="fa-solid fa-camera text-xs opacity-80"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Home Screen App Grid -->
+            <div id="home-grid-container" class="flex-1 my-4 flex items-center justify-center">
+                <div id="home-grid" class="w-full grid gap-4 justify-items-center items-center">
+                    <!-- Home Desktop Apps rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Swipe Up Indicator -->
+            <div class="w-full flex justify-center pb-1">
+                <div class="w-12 h-1 bg-white/40 rounded-full animate-pulse"></div>
+            </div>
+        </main>
+
+        <!-- DOCK AREA -->
+        <footer id="dock-area" class="relative z-10 px-4 pb-4 pt-2 bg-gradient-to-t from-black/60 to-transparent">
+            <div id="dock-grid" class="flex justify-around items-center glass-panel rounded-3xl p-3 shadow-2xl">
+                <!-- Dock Icons rendered dynamically -->
+            </div>
+        </footer>
+
+        <!-- APP DRAWER OVERLAY -->
+        <div id="app-drawer" class="drawer-slide absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-2xl flex flex-col translate-y-full opacity-0 pointer-events-none">
+            <!-- Search Drawer Header -->
+            <div class="p-4 pt-8 border-b border-white/10 flex items-center space-x-3">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="drawer-search" oninput="filterDrawerApps()" placeholder="Cari aplikasi..." class="w-full bg-slate-800/80 text-white rounded-full pl-10 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 border border-white/10 placeholder-slate-400">
+                </div>
+                <button onclick="toggleDrawer(false)" class="p-2 rounded-full hover:bg-white/10 text-slate-300">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- All Apps Grid -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div id="drawer-grid" class="grid grid-cols-4 gap-y-6 gap-x-2 justify-items-center">
+                    <!-- Drawer Apps rendered dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS MODAL OVERLAY -->
+        <div id="settings-modal" class="absolute inset-0 z-40 bg-slate-950/95 backdrop-blur-xl flex flex-col translate-y-full transition-transform duration-300">
+            <!-- Settings Header -->
+            <div class="p-4 pt-6 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-sm">O</div>
+                    <h2 class="text-lg font-bold">Pengaturan OvaUI</h2>
+                </div>
+                <button onclick="toggleSettings(false)" class="p-2 rounded-full hover:bg-white/10 text-slate-300">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Settings Options Content -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-6">
+                <!-- Icon Customization Section -->
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold">Tampilan Ikon</h3>
+                    <div class="bg-slate-900/80 border border-white/5 rounded-2xl p-4 space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-slate-300 block mb-2">Bentuk Ikon (Icon Shape)</label>
+                            <div class="grid grid-cols-5 gap-2">
+                                <button onclick="setIconShape('circle')" class="shape-btn p-3 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-indigo-600/50 transition border border-white/10" title="Circle">
+                                    <div class="w-6 h-6 bg-indigo-500 rounded-full"></div>
+                                </button>
+                                <button onclick="setIconShape('squircle')" class="shape-btn p-3 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-indigo-600/50 transition border border-white/10" title="Squircle">
+                                    <div class="w-6 h-6 bg-indigo-500 icon-shape-squircle"></div>
+                                </button>
+                                <button onclick="setIconShape('rounded')" class="shape-btn p-3 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-indigo-600/50 transition border border-white/10" title="Rounded">
+                                    <div class="w-6 h-6 bg-indigo-500 rounded-md"></div>
+                                </button>
+                                <button onclick="setIconShape('teardrop')" class="shape-btn p-3 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-indigo-600/50 transition border border-white/10" title="Teardrop">
+                                    <div class="w-6 h-6 bg-indigo-500 icon-shape-teardrop"></div>
+                                </button>
+                                <button onclick="setIconShape('square')" class="shape-btn p-3 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-indigo-600/50 transition border border-white/10" title="Square">
+                                    <div class="w-6 h-6 bg-indigo-500 rounded-none"></div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-sm font-medium mb-1">
+                                <span class="text-slate-300">Ukuran Ikon</span>
+                                <span id="icon-size-val" class="text-indigo-400">48px</span>
+                            </div>
+                            <input type="range" id="icon-size-range" min="36" max="64" value="48" oninput="updateIconSize(this.value)" class="w-full accent-indigo-500">
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-slate-300">Tampilkan Label Nama Aplikasi</span>
+                            <input type="checkbox" id="toggle-labels" checked onchange="toggleLabels(this.checked)" class="w-5 h-5 accent-indigo-600 rounded">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid Layout Customization -->
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold">Grid & Desktop</h3>
+                    <div class="bg-slate-900/80 border border-white/5 rounded-2xl p-4 space-y-4">
+                        <div>
+                            <label class="text-sm font-medium text-slate-300 block mb-2">Kolom Home Grid</label>
+                            <select id="grid-cols-select" onchange="updateGridCols(this.value)" class="w-full bg-slate-800 border border-white/10 rounded-xl p-2.5 text-sm outline-none focus:border-indigo-500">
+                                <option value="3">3 Kolom</option>
+                                <option value="4" selected>4 Kolom (Default Nova)</option>
+                                <option value="5">5 Kolom</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wallpaper Settings -->
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold">Wallpaper</h3>
+                    <div class="bg-slate-900/80 border border-white/5 rounded-2xl p-4 space-y-3">
+                        <label class="text-sm font-medium text-slate-300 block">Pilih Tema Wallpaper</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setWallpaper('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop')" class="h-16 rounded-xl bg-cover bg-center border border-white/20 hover:ring-2 ring-indigo-500" style="background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=200')"></button>
+                            <button onclick="setWallpaper('https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1000&auto=format&fit=crop')" class="h-16 rounded-xl bg-cover bg-center border border-white/20 hover:ring-2 ring-indigo-500" style="background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=200')"></button>
+                            <button onclick="setWallpaper('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=1000&auto=format&fit=crop')" class="h-16 rounded-xl bg-cover bg-center border border-white/20 hover:ring-2 ring-indigo-500" style="background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=200')"></button>
+                        </div>
+                        <div class="pt-2">
+                            <label class="text-xs text-slate-400 block mb-1">Custom Image URL</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="custom-wallpaper-url" placeholder="Paste URL gambar..." class="flex-1 bg-slate-800 text-xs rounded-xl px-3 py-2 border border-white/10 outline-none">
+                                <button onclick="setCustomWallpaper()" class="bg-indigo-600 text-xs px-3 py-2 rounded-xl hover:bg-indigo-500">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Custom App -->
+                <div class="space-y-3">
+                    <h3 class="text-xs uppercase tracking-wider text-indigo-400 font-semibold">Tambah Aplikasi Baru</h3>
+                    <div class="bg-slate-900/80 border border-white/5 rounded-2xl p-4 space-y-3">
+                        <input type="text" id="new-app-name" placeholder="Nama Aplikasi" class="w-full bg-slate-800 text-xs rounded-xl p-2.5 border border-white/10 outline-none">
+                        <input type="text" id="new-app-icon" placeholder="FontAwesome Icon Class (cth: fa-solid fa-gamepad)" class="w-full bg-slate-800 text-xs rounded-xl p-2.5 border border-white/10 outline-none">
+                        <input type="text" id="new-app-color" placeholder="Warna BG Tailwind (cth: bg-emerald-500)" class="w-full bg-slate-800 text-xs rounded-xl p-2.5 border border-white/10 outline-none">
+                        <button onclick="addNewApp()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold py-2.5 rounded-xl transition">Tambah Aplikasi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIMULATED APP WINDOW MODAL -->
+        <div id="app-window" class="absolute inset-0 z-50 bg-slate-900 flex flex-col translate-y-full transition-transform duration-300">
+            <!-- App Header -->
+            <div class="p-4 bg-slate-800/80 flex justify-between items-center border-b border-white/10">
+                <div class="flex items-center space-x-2">
+                    <i id="active-app-icon" class="text-lg"></i>
+                    <span id="active-app-title" class="font-bold text-sm">App</span>
+                </div>
+                <button onclick="closeApp()" class="p-2 rounded-full hover:bg-white/10 text-slate-300">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <!-- App Body Simulation -->
+            <div id="active-app-content" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                <!-- Dynamic Content Loaded Here -->
+            </div>
+        </div>
+
+        <!-- NAVIGATION BAR (Android Virtual Keys) -->
+        <nav class="relative z-20 h-10 bg-black/80 backdrop-blur-md flex justify-around items-center px-8 border-t border-white/5">
+            <button onclick="navRecent()" class="p-2 text-slate-400 hover:text-white active:scale-90 transition">
+                <i class="fa-solid fa-square text-xs"></i>
+            </button>
+            <button onclick="navHome()" class="p-2 text-slate-400 hover:text-white active:scale-90 transition">
+                <i class="fa-solid fa-circle text-xs"></i>
+            </button>
+            <button onclick="navBack()" class="p-2 text-slate-400 hover:text-white active:scale-90 transition">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+        </nav>
+    </div>
+
+    <!-- AUDIO SOUND EFFECTS (Web Audio API synthetized) -->
+    <script>
+        // Default Apps Database
+        let apps = [
+            { id: 'settings', name: 'Ova Settings', icon: 'fa-solid fa-gear', color: 'bg-indigo-600', isSystem: true, action: () => toggleSettings(true) },
+            { id: 'phone', name: 'Telepon', icon: 'fa-solid fa-phone', color: 'bg-emerald-500', isDock: true },
+            { id: 'messages', name: 'Pesan', icon: 'fa-solid fa-comment-dots', color: 'bg-blue-500', isDock: true },
+            { id: 'browser', name: 'Chrome', icon: 'fa-brands fa-chrome', color: 'bg-amber-500', isDock: true },
+            { id: 'camera', name: 'Kamera', icon: 'fa-solid fa-camera', color: 'bg-rose-500', isDock: true },
+            { id: 'gallery', name: 'Galeri', icon: 'fa-solid fa-image', color: 'bg-purple-500', isHome: true },
+            { id: 'playstore', name: 'Play Store', icon: 'fa-solid fa-bag-shopping', color: 'bg-teal-500', isHome: true },
+            { id: 'youtube', name: 'YouTube', icon: 'fa-brands fa-youtube', color: 'bg-red-600', isHome: true },
+            { id: 'spotify', name: 'Spotify', icon: 'fa-brands fa-spotify', color: 'bg-green-500', isHome: true },
+            { id: 'whatsapp', name: 'WhatsApp', icon: 'fa-brands fa-whatsapp', color: 'bg-emerald-600', isHome: true },
+            { id: 'instagram', name: 'Instagram', icon: 'fa-brands fa-instagram', color: 'bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600', isHome: true },
+            { id: 'clock', name: 'Jam', icon: 'fa-solid fa-clock', color: 'bg-cyan-600', isHome: true },
+            { id: 'calculator', name: 'Kalkulator', icon: 'fa-solid fa-calculator', color: 'bg-orange-500' },
+            { id: 'notes', name: 'Catatan', icon: 'fa-solid fa-note-sticky', color: 'bg-yellow-500' },
+            { id: 'files', name: 'File', icon: 'fa-solid fa-folder-open', color: 'bg-blue-600' }
+        ];
+
+        // Launcher State Configuration
+        let config = {
+            iconShape: 'squircle', // circle, squircle, rounded, teardrop, square
+            iconSize: 48, // in px
+            showLabels: true,
+            gridCols: 4,
+            wallpaper: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop'
+        };
+
+        // Initialize Launcher
+        window.onload = () => {
+            initClock();
+            renderLauncher();
+            setupTouchGestures();
+        };
+
+        // Live Clock Widget & Status Bar Update
+        function initClock() {
+            const updateTime = () => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = `${hours}:${minutes}`;
+
+                document.getElementById('status-clock').innerText = timeStr;
+                document.getElementById('widget-time').innerText = timeStr;
+
+                const options = { weekday: 'long', day: 'numeric', month: 'long' };
+                document.getElementById('widget-date').innerText = now.toLocaleDateString('id-ID', options);
+            };
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
+
+        // Render Icons for Home, Dock, and Drawer
+        function renderLauncher() {
+            renderHomeGrid();
+            renderDock();
+            renderDrawer();
+        }
+
+        function createIconElement(app) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex flex-col items-center justify-center cursor-pointer group transition transform active:scale-90';
+            wrapper.onclick = () => {
+                if (app.action) {
+                    app.action();
+                } else {
+                    openApp(app.name, app.icon, app.color);
+                }
+            };
+
+            // Icon Container
+            const iconDiv = document.createElement('div');
+            iconDiv.className = `${app.color} icon-shape-${config.iconShape} flex items-center justify-center text-white shadow-lg shadow-black/30 transition-all duration-300 group-hover:brightness-110`;
+            iconDiv.style.width = `${config.iconSize}px`;
+            iconDiv.style.height = `${config.iconSize}px`;
+
+            const icon = document.createElement('i');
+            icon.className = `${app.icon} text-lg`;
+            iconDiv.appendChild(icon);
+
+            wrapper.appendChild(iconDiv);
+
+            // App Label Text
+            if (config.showLabels) {
+                const label = document.createElement('span');
+                label.className = 'text-[11px] text-white/90 font-medium mt-1.5 truncate max-w-[70px] text-center drop-shadow-md';
+                label.innerText = app.name;
+                wrapper.appendChild(label);
+            }
+
+            return wrapper;
+        }
+
+        function renderHomeGrid() {
+            const container = document.getElementById('home-grid');
+            container.innerHTML = '';
+            container.className = `w-full grid grid-cols-${config.gridCols} gap-y-6 gap-x-2 justify-items-center items-center`;
+
+            const homeApps = apps.filter(a => a.isHome || a.isSystem);
+            homeApps.forEach(app => {
+                container.appendChild(createIconElement(app));
+            });
+        }
+
+        function renderDock() {
+            const container = document.getElementById('dock-grid');
+            container.innerHTML = '';
+
+            const dockApps = apps.filter(a => a.isDock);
+            dockApps.forEach(app => {
+                container.appendChild(createIconElement(app));
+            });
+
+            // Always add Drawer button to Dock
+            const drawerBtn = {
+                id: 'drawer-trigger',
+                name: 'Drawer',
+                icon: 'fa-solid fa-grip-vertical',
+                color: 'bg-slate-700/80 backdrop-blur-md',
+                action: () => toggleDrawer(true)
+            };
+            container.appendChild(createIconElement(drawerBtn));
+        }
+
+        function renderDrawer() {
+            const container = document.getElementById('drawer-grid');
+            container.innerHTML = '';
+
+            apps.forEach(app => {
+                container.appendChild(createIconElement(app));
+            });
+        }
+
+        // Search in App Drawer
+        function filterDrawerApps() {
+            const query = document.getElementById('drawer-search').value.toLowerCase();
+            const container = document.getElementById('drawer-grid');
+            container.innerHTML = '';
+
+            const filtered = apps.filter(a => a.name.toLowerCase().includes(query));
+            filtered.forEach(app => {
+                container.appendChild(createIconElement(app));
+            });
+        }
+
+        // Toggle App Drawer overlay
+        function toggleDrawer(open) {
+            const drawer = document.getElementById('app-drawer');
+            if (open) {
+                drawer.classList.remove('translate-y-full', 'opacity-0', 'pointer-events-none');
+                drawer.classList.add('translate-y-0', 'opacity-100');
+            } else {
+                drawer.classList.add('translate-y-full', 'opacity-0', 'pointer-events-none');
+                drawer.classList.remove('translate-y-0', 'opacity-100');
+            }
+        }
+
+        // Toggle Settings overlay
+        function toggleSettings(open) {
+            const modal = document.getElementById('settings-modal');
+            if (open) {
+                modal.classList.remove('translate-y-full');
+            } else {
+                modal.classList.add('translate-y-full');
+            }
+        }
+
+        // Customization Functions
+        function setIconShape(shape) {
+            config.iconShape = shape;
+            renderLauncher();
+        }
+
+        function updateIconSize(val) {
+            config.iconSize = val;
+            document.getElementById('icon-size-val').innerText = `${val}px`;
+            renderLauncher();
+        }
+
+        function toggleLabels(show) {
+            config.showLabels = show;
+            renderLauncher();
+        }
+
+        function updateGridCols(cols) {
+            config.gridCols = cols;
+            renderHomeGrid();
+        }
+
+        function setWallpaper(url) {
+            config.wallpaper = url;
+            document.getElementById('wallpaper').style.backgroundImage = `url('${url}')`;
+        }
+
+        function setCustomWallpaper() {
+            const url = document.getElementById('custom-wallpaper-url').value.trim();
+            if (url) {
+                setWallpaper(url);
+            }
+        }
+
+        function addNewApp() {
+            const name = document.getElementById('new-app-name').value.trim();
+            const icon = document.getElementById('new-app-icon').value.trim() || 'fa-solid fa-cube';
+            const color = document.getElementById('new-app-color').value.trim() || 'bg-indigo-600';
+
+            if (!name) return;
+
+            const newApp = {
+                id: 'custom-' + Date.now(),
+                name: name,
+                icon: icon,
+                color: color,
+                isHome: true
+            };
+
+            apps.push(newApp);
+            renderLauncher();
+
+            // Clear inputs
+            document.getElementById('new-app-name').value = '';
+            document.getElementById('new-app-icon').value = '';
+            document.getElementById('new-app-color').value = '';
+        }
+
+        // Simulated App Window Open/Close
+        function openApp(name, iconClass = 'fa-solid fa-window-maximize', color = 'bg-slate-700') {
+            const appWin = document.getElementById('app-window');
+            document.getElementById('active-app-title').innerText = name;
+            
+            const activeIcon = document.getElementById('active-app-icon');
+            activeIcon.className = iconClass;
+
+            const content = document.getElementById('active-app-content');
+            content.innerHTML = `
+                <div class="w-20 h-20 ${color} rounded-3xl flex items-center justify-center text-3xl mb-4 shadow-xl">
+                    <i class="${iconClass}"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">${name}</h3>
+                <p class="text-sm text-slate-400 max-w-xs">Ini adalah simulasi aplikasi <strong>${name}</strong> di OvaUI Launcher.</p>
+                <button onclick="closeApp()" class="mt-6 px-5 py-2.5 bg-indigo-600 rounded-full font-medium text-xs hover:bg-indigo-500">Tutup Aplikasi</button>
+            `;
+
+            appWin.classList.remove('translate-y-full');
+        }
+
+        function closeApp() {
+            document.getElementById('app-window').classList.add('translate-y-full');
+        }
+
+        // Simulated Android Navigation Bar Keys
+        function navHome() {
+            closeApp();
+            toggleSettings(false);
+            toggleDrawer(false);
+        }
+
+        function navBack() {
+            const appWin = document.getElementById('app-window');
+            const settings = document.getElementById('settings-modal');
+            const drawer = document.getElementById('app-drawer');
+
+            if (!appWin.classList.contains('translate-y-full')) {
+                closeApp();
+            } else if (!settings.classList.contains('translate-y-full')) {
+                toggleSettings(false);
+            } else if (!drawer.classList.contains('translate-y-full')) {
+                toggleDrawer(false);
+            }
+        }
+
+        function navRecent() {
+            toggleSettings(true);
+        }
+
+        // Touch & Swipe Gestures (Swipe Up for App Drawer)
+        function setupTouchGestures() {
+            const phone = document.getElementById('phone-container');
+            let startY = 0;
+
+            phone.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+            });
+
+            phone.addEventListener('touchend', (e) => {
+                const endY = e.changedTouches[0].clientY;
+                const diffY = startY - endY;
+
+                // Swipe Up gesture detected (>70px)
+                if (diffY > 70) {
+                    toggleDrawer(true);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
